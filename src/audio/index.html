@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <link rel="stylesheet" href="css/style.css">
+    <script src="js/script.js"></script>
+</head>
+<body>
+    <div class="main-container">
+    <div class="sidewall"></div>
+    <div class="view-container">
+        
+        <div class="buttons">
+            <input type="button" id="save-btn" value="Save">
+            <script>
+                document.getElementById("save-btn")
+                .addEventListener("click", function () {
+                      var object = {notes:notes, areas:areanotes};
+                      console.log(object)
+                      var json = JSON.stringify(object);
+                      var filename = "notes.json";
+                      save(filename, json);
+                });
+            </script>
+            <input type="file" id="load-input" accept=".json">
+            <script>
+                const reader = new FileReader();
+                reader.addEventListener("load", () => {
+                    var json = JSON.parse(reader.result);
+                    loadNotes(json.notes);
+                    loadAreas(json.areas);
+                });
+                document.getElementById("load-input")
+                .addEventListener("change", async function (e) {
+                    if (e.target.files[0]) {
+                        reader.readAsText(e.target.files[0]);
+                    }
+                });
+            </script>
+        </div>
+        <div class="audio-wrapper">
+            <div class="audio">
+                <audio src="media/audio.mp3" id="audio"></audio>
+                <div class="buttons">
+                    <button id="control" onclick="togglePlaying()">Play</button>
+                </div>
+            <div class="viewport">
+                <div class="visualization-wrapper" style="margin-left: 0px">
+                    <div class="ruler" id="ruler">
+                    </div>
+                    <div class="areas" id="areas">
+                        <div class="areas-placeholder"></div>
+                    </div>
+                    <div class="progress-wrapper" id="progress-wrapper">
+                        <div id="progress" class="progress"></div>
+                        <div id="progress-bar" class="progress-bar"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="buttons" >
+                <select id="playbackrate">
+                    <option value="0.25">0.25</option>
+                    <option value="0.5">0.5</option>
+                    <option value="0.75">0.75</option>
+                    <option value="1" selected>1</option>
+                    <option value="1.25">1.25</option>
+                    <option value="1.5">1.5</option>
+                    <option value="1.75">1.75</option>
+                    <option value="2">2</option>
+                </select>
+            </div>
+            </div>
+            <script>
+                let audio;
+                let isChangingTime = false;
+                let isSelecting = false;
+                let isInteracting = false;
+                let isMoved = false;
+                let isScalingArea = false;
+                let isScalingView = false;
+                let direction = null;
+                let currentArea = null;
+                let currentAreaNode = null;
+                let isMovingView = null;
+                let wMultiplier = 1; // is to make scaling easier for long audios according to current px per sec, disabled for now
+                
+                document.querySelector('audio').onloadedmetadata = () => audioInit();
+
+                var viewportWidth = document.querySelector('.visualization-wrapper').getBoundingClientRect().width;
+                window.onresize = widthRenewer;
+                function widthRenewer() {
+                    viewportWidth = document.querySelector('.visualization-wrapper').getBoundingClientRect().width;
+                    var marks = document.querySelector('.box');
+                    if (marks) {
+                        marksControl();
+                    }
+                }
+                
+                function restrictSelecting() {
+                    window.getSelection().removeAllRanges();
+                    document.onselectstart = () => {
+                        return false
+                    }
+                }
+
+                function allowSelecting() {
+                    document.onselectstart = null;
+                }
+
+                document.getElementById('ruler')
+                .addEventListener('mousedown', function (e) {
+                    restrictSelecting();
+                    if (e.shiftKey) {
+                        isScalingView = true;
+                        return;
+                    }
+                    isMovingView = true;
+                    return;
+                })
+
+                document.getElementById('audio')
+                .addEventListener('timeupdate', function () {
+                    updateProgress();
+                })
+
+                document.getElementById('progress-wrapper')
+                .addEventListener('mousedown', function (e) {
+                    restrictSelecting();
+                    changeTime(e.pageX);
+                    isChangingTime = true;
+                })
+
+                document.getElementById('playbackrate')
+                .addEventListener('change', function (e) {
+                    playbackRate(e.target.value)
+                })
+
+                document.getElementById('areas')
+                .addEventListener('mousedown', function (e) {
+                    if (e.target.className != 'area') {
+                        restrictSelecting();
+                        selectStart(e.pageX);
+                        isSelecting = true;
+                    }
+                })
+
+                document.getElementById('areas')
+                .addEventListener('click', function (e) {
+                    if (e.target.className == 'area') {
+                        var id = e.target.getAttribute('id');
+                        areaClick(id, e.target);
+                    }
+                })
+                document.getElementById('areas')
+                .addEventListener('mousedown', function (e) {
+                    if (e.target.className == 'area') {
+                        var direction = isEdge(e.target, e.offsetX)
+                        if (direction) {
+                            restrictSelecting();
+                            var id = e.target.getAttribute('id');
+                            scaleAreaStart(e.target, id);
+                            isScalingArea = true;
+                        } else {
+                            restrictSelecting();
+                            var id = e.target.getAttribute('id');
+                            moveStart(e.target, id);
+                            isInteracting = true;
+                        }
+                    }
+                })
+                document
+                .addEventListener('mousemove', function (e) {
+                    if (isSelecting === true) {
+                        selecting(e.pageX);
+                    }
+                    if (isInteracting === true) {
+                        moving(e.movementX);
+                        isMoved = true;
+                    }
+                    if (isScalingArea === true) {
+                        scaleArea(e.movementX);
+                    }
+                    if (isChangingTime === true) {
+                        changeTime(e.pageX);
+                    }
+                    if (isScalingView === true) {
+                        console.log(e.movementX)
+                        var viewport = document.querySelector('.visualization-wrapper');
+                            viewport.style.width = ((viewport.getBoundingClientRect().width + (e.movementX * wMultiplier))) + 'px';
+                        widthRenewer();
+                    }
+                    if (isMovingView === true) {
+                        var viewport = document.querySelector('.visualization-wrapper');
+                            viewport.style.marginLeft = (parseFloat(viewport.style.marginLeft) + e.movementX) + 'px';
+                    }
+                })
+                document
+                .addEventListener('mouseup', function (e) {
+                    if (isEmptySpace(e.target) && !isInteracting && !isScalingArea && !isSelecting) {
+                        currentArea = null;
+                        currentAreaNode = null;
+                        console.log('currentArea deselected')
+                    }
+                    if (isSelecting === true) {
+                        selectEnd(e.pageX);
+                        isSelecting = false;
+                    }
+                    if (isInteracting === true && isMoved === true) {
+                        moveEnd();
+                        isInteracting = false;
+                        isMoved = false;
+                    }
+                    if (isInteracting === true && isMoved === false) {
+                        isInteracting = false;
+                    }
+                    if (isScalingArea === true) {
+                        scaleAreaEnd();
+                        isScalingArea = false;
+                        direction = null;
+                    }
+                    if (isChangingTime === true) {
+                        isChangingTime = false;
+                    }
+                    if (isScalingView === true) {
+                        isScalingView = false;
+                    }
+                    if (isMovingView === true) {
+                        isMovingView = false;
+                    }
+                    allowSelecting();
+                })
+
+                function isEmptySpace(node) {
+                    if (node.localName == 'html' || node.localName == 'body' || node.localName == 'div') {
+                        if (node.localName == 'div') {
+                            if (node.className != 'area') {
+                                return true;
+                            }
+                        } else {
+                            return true;
+                        }
+                    }
+                    return false;
+                }
+            </script>
+            </div>
+        <div class="form-wrapper">
+            <div class="buttons">
+                <input type="button" id="write-btn" value="Make note">
+                <script>
+                    document.getElementById('write-btn')
+                    .addEventListener('click', function () {
+                        var text = document.getElementById('note').value;
+                        var sign = document.getElementById('sign').value;
+                        if (!currentArea) {
+                            annotate(text, sign);
+                        }
+                        if (currentArea) {
+                            annotateArea(text)
+                        }                        
+                    });
+                </script>
+                <input type="button" id="erase-btn" value="Remove note">
+                <script>
+                    document.getElementById('erase-btn')
+                    .addEventListener('click', function () {
+                        if (currentNote) {
+                            removeNote();
+                        }
+                        if (currentArea) {
+                            removeArea();
+                        }
+                    });
+                </script>
+            </div>
+            <div class="input-wrapper">
+                <textarea id="note"></textarea>
+                <input type="text" id="sign">
+            </div>
+        </div>
+        <div class="notes-wrapper">
+            <div class="notes" id="notes">
+            </div>
+            <script>
+                let currentNote = null;
+                let currentNoteNode = null;
+
+                document.getElementById('notes')
+                .addEventListener('click', function (e) {
+                    var node = e.target;
+                    if (node.className == 'note') {
+                        var id = node.getAttribute('i');
+                        noteClick(id, node);
+                    }
+                })
+            </script>
+        </div>
+    </div>
+    <div class="sidewall"></div>
+    </div>
+</body>
+</html>

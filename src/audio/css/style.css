@@ -1,0 +1,175 @@
+:root {
+  --progress: 0px;
+  --mark-0: 0px;
+  --mark-1: 0px;
+  --mark-2: 0px;
+  --mark-3: 0px;
+  --mark-4: 0px;
+  --mark-5: 0px;
+  --mark-6: 0px;
+}
+
+body {
+  margin: 0;
+}
+
+.main-container {
+  display: flex;
+}
+
+.view-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-grow: 12;
+  margin: 10px;
+}
+
+.buttons {
+  margin-bottom: 10px;
+  min-width: 360px;
+}
+
+.audio {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.viewport {
+  width: 100%;
+  height: 90px;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+.sidewall {
+  z-index: 100;
+  flex-grow: 1;
+  background-color: #000000;
+
+}
+
+.ruler {
+  width: 100%;
+  height: 10px;
+  display: flex;
+  background-color: #f1f1f1;
+  font-size: 10px;
+}
+
+.ruler:hover{
+  width: 100%;
+  height: 10px;
+  display: flex;
+  background-color: #f1f1f1;
+  font-size: 10px;
+  cursor: grab;
+}
+
+.ruler:active{
+  width: 100%;
+  height: 10px;
+  display: flex;
+  background-color: #f1f1f1;
+  font-size: 10px;
+  cursor: grabbing;
+}
+
+.box {
+  display: flex;
+  flex-wrap: nowrap;
+  position: absolute;
+}
+
+.mark-0 {
+  width: var(--mark-0);
+}
+.mark-1 {
+  width: var(--mark-1);
+}
+.mark-2 {
+  width: var(--mark-2);
+}
+.mark-3 {
+  width: var(--mark-3);
+}
+.mark-4 {
+  width: var(--mark-4);
+}
+.mark-5 {
+  width: var(--mark-5);
+}
+.mark-6 {
+  width: var(--mark-6);
+}
+
+.form-wrapper {
+  margin-bottom: 10px;
+}
+
+.input-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.notes-wrapper {
+  margin-bottom: 10px;
+}
+
+.audio-wrapper {
+  position: relative;
+  margin-bottom: 10px;
+  width: -webkit-fill-available;
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+}
+
+.visualization-wrapper {
+  position: absolute;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.areas-placeholder {
+  visibility: hidden;
+  height: 10px;
+}
+
+.area {
+  background-color: blue;
+  height: 10px;
+  width: 0;
+}
+
+.areas {
+  width: 100%;
+  height: fit-content;
+  display: flex;
+  flex-direction: column;
+}
+
+.progress-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.progress {
+  position: absolute;
+  width: var(--progress);
+  height: 10px;
+  background-color: #000000;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 10px;
+  background-color: #d9d9d9;
+}
