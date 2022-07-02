@@ -1,5 +1,6 @@
 :root {
   --progress: 0px;
+  --volume: 100%;
   --mark-0: 0px;
   --mark-1: 0px;
   --mark-2: 0px;
@@ -7,6 +8,7 @@
   --mark-4: 0px;
   --mark-5: 0px;
   --mark-6: 0px;
+  --player-elements-height: 10px;
 }
 
 body {
@@ -15,6 +17,7 @@ body {
 
 .main-container {
   display: flex;
+  overflow-x: hidden;
 }
 
 .view-container {
@@ -28,6 +31,10 @@ body {
 .buttons {
   margin-bottom: 10px;
   min-width: 360px;
+}
+
+#erase-btn {
+  visibility: hidden;
 }
 
 .audio {
@@ -55,28 +62,31 @@ body {
 
 .ruler {
   width: 100%;
-  height: 10px;
+  height: var(--player-elements-height);
   display: flex;
   background-color: #f1f1f1;
   font-size: 10px;
+  align-items: flex-end;
 }
 
 .ruler:hover{
   width: 100%;
-  height: 10px;
+  height: var(--player-elements-height);
   display: flex;
   background-color: #f1f1f1;
   font-size: 10px;
   cursor: grab;
+  align-items: flex-end;
 }
 
 .ruler:active{
   width: 100%;
-  height: 10px;
+  height: var(--player-elements-height);
   display: flex;
   background-color: #f1f1f1;
   font-size: 10px;
   cursor: grabbing;
+  align-items: flex-end;
 }
 
 .box {
@@ -108,13 +118,29 @@ body {
 }
 
 .form-wrapper {
+  width: 100%;
   margin-bottom: 10px;
 }
 
 .input-wrapper {
+  width: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
+}
+
+.text-input {
+  width: 50%;
+  resize: none;
+}
+
+#note {
+  height: auto;
+  overflow: hidden;
+}
+
+.text-double {
+  visibility: hidden;
 }
 
 .notes-wrapper {
@@ -139,17 +165,32 @@ body {
 }
 
 .areas-placeholder {
-  visibility: hidden;
-  height: 10px;
+  height: var(--player-elements-height);
+  width: 100%;
+}
+
+.areas-placeholder:hover {
+  height: var(--player-elements-height);
+  width: 100%;
+  cursor: copy;
 }
 
 .area {
-  background-color: blue;
-  height: 10px;
+  position: absolute;
+  background-color: rgba(0, 0, 255, .1);
+  height: var(--player-elements-height);
+  width: 0;
+  cursor: default;
+}
+
+.area[selected] {
+  background-color: rgba(100, 130, 255, 0.5);
+  height: var(--player-elements-height);
   width: 0;
 }
 
 .areas {
+  position: absolute;
   width: 100%;
   height: fit-content;
   display: flex;
@@ -161,15 +202,107 @@ body {
   width: 100%;
 }
 
+.progress-wrapper:hover {
+  position: relative;
+  width: 100%;
+  cursor: pointer;
+}
+
 .progress {
   position: absolute;
   width: var(--progress);
-  height: 10px;
+  height: var(--player-elements-height);
   background-color: #000000;
 }
 
 .progress-bar {
   width: 100%;
-  height: 10px;
+  height: var(--player-elements-height);
   background-color: #d9d9d9;
+}
+
+.volume-wrapper {
+  background-color: #d9d9d9;
+  width: 15%;
+}
+
+.volume-wrapper:hover {
+  background-color: #d9d9d9;
+  width: 15%;
+  cursor: pointer;
+}
+
+.volume {
+  background-color: aqua;
+  width: var(--volume);
+  height: var(--player-elements-height);
+}
+
+.note-ref-placeholder {
+  height: fit-content;
+  width: 100%;
+}
+
+.note-ref-wrapper {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  height: 30px;
+  width: 100%;
+  font-size: 10px;
+  font-family: sans-serif;
+}
+
+.note-ref-mark {
+  opacity: 1;
+  height: 30px;
+  width: 1px;
+  background: linear-gradient(
+    rgba(0, 255, 255, .95),
+    rgba(0, 255, 255, .1));
+}
+
+.note-ref {
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  padding-left: 5px;
+  padding-right: 10px;
+  height: 100%;
+  background-color: #ffffff;
+  -webkit-transition: opacity .25s ease-in-out .0s;
+  transition: opacity .25s ease-in-out .0s;
+  opacity: 0;
+}
+
+.note-ref-wrapper:hover .note-ref {
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  padding-left: 5px;
+  padding-right: 10px;
+  height: 100%;
+  background-color: #ffffff;
+  -webkit-transition: opacity .25s ease-in-out .0s;
+  transition: opacity .25s ease-in-out .0s;
+  opacity: 1;
+  z-index: 9999;
+}
+
+.note-ref-wrapper[selected] .note-ref {
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  padding-left: 5px;
+  padding-right: 10px;
+  height: 100%;
+  background-color: #ffffff;
+  -webkit-transition: opacity .25s ease-in-out .0s;
+  transition: opacity .25s ease-in-out .0s;
+  opacity: 1;
+  z-index: 9999;
+}
+
+.note {
+  margin: 5px;
 }

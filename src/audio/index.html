@@ -3,7 +3,7 @@
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
     <!-- jQuery -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <link rel="stylesheet" href="css/style.css">
@@ -19,7 +19,7 @@
             <script>
                 document.getElementById("save-btn")
                 .addEventListener("click", function () {
-                      var object = {notes:notes, areas:areanotes};
+                      var object = {list:list};
                       console.log(object)
                       var json = JSON.stringify(object);
                       var filename = "notes.json";
@@ -31,8 +31,7 @@
                 const reader = new FileReader();
                 reader.addEventListener("load", () => {
                     var json = JSON.parse(reader.result);
-                    loadNotes(json.notes);
-                    loadAreas(json.areas);
+                    loadNotes(json.list);
                 });
                 document.getElementById("load-input")
                 .addEventListener("change", async function (e) {
@@ -47,46 +46,81 @@
                 <audio src="media/audio.mp3" id="audio"></audio>
                 <div class="buttons">
                     <button id="control" onclick="togglePlaying()">Play</button>
+                    <select id="playbackrate">
+                        <option value="0.25">0.25</option>
+                        <option value="0.5">0.5</option>
+                        <option value="0.75">0.75</option>
+                        <option value="1" selected>1</option>
+                        <option value="1.25">1.25</option>
+                        <option value="1.5">1.5</option>
+                        <option value="1.75">1.75</option>
+                        <option value="2">2</option>
+                    </select>
+                </div>
+                <div class="time">
+                    <span id="time-current">00:00:00</span>
+                    <span id="time-separator"> / </span>
+                    <span id="time-duration"></span>
                 </div>
             <div class="viewport">
                 <div class="visualization-wrapper" style="margin-left: 0px">
                     <div class="ruler" id="ruler">
                     </div>
-                    <div class="areas" id="areas">
-                        <div class="areas-placeholder"></div>
+                    <div class="areas-placeholder">
+                        <div class="areas" id="areas"></div>
                     </div>
                     <div class="progress-wrapper" id="progress-wrapper">
                         <div id="progress" class="progress"></div>
                         <div id="progress-bar" class="progress-bar"></div>
                     </div>
+                    <div class="note-ref-placeholder">
+                    </div>
                 </div>
             </div>
-            <div class="buttons" >
-                <select id="playbackrate">
-                    <option value="0.25">0.25</option>
-                    <option value="0.5">0.5</option>
-                    <option value="0.75">0.75</option>
-                    <option value="1" selected>1</option>
-                    <option value="1.25">1.25</option>
-                    <option value="1.5">1.5</option>
-                    <option value="1.75">1.75</option>
-                    <option value="2">2</option>
-                </select>
+            <div class="volume-wrapper" id="volumeBar">
+                <div class="volume" id="volume">
+            </div>
+                <script>
+                    let isChangingVolume = false;
+                    var volume = document.getElementById('volume');
+                    var volumeBar = document.getElementById('volumeBar');
+                    let maxVolumeWidth = volumeBar.getBoundingClientRect().width;
+                    volumeBar.addEventListener('mousedown', () => {
+                        isChangingVolume = true;
+                        restrictSelecting();
+                    })
+                    function changeVolume(e) {
+                        if (isChangingVolume === true) {
+                            var style = document.body.style;
+                            var x = e.pageX - volume.getBoundingClientRect().left;
+                            var setVolume = (x / maxVolumeWidth) * 100;
+                            if (setVolume >= 100) {
+                                setVolume = 100;
+                            } else {
+                            if (setVolume <= 0) {
+                                setVolume = 0;
+                                }
+                            }
+                            style.setProperty('--volume', setVolume + '%');
+                            audio.volume = setVolume / 100;
+                        }
+                    }
+                </script>
             </div>
             </div>
             <script>
                 let audio;
                 let isChangingTime = false;
-                let isSelecting = false;
-                let isInteracting = false;
+                let isBuilding = false;
+                let isMoving = false;
                 let isMoved = false;
                 let isScalingArea = false;
                 let isScalingView = false;
-                let direction = null;
-                let currentArea = null;
-                let currentAreaNode = null;
                 let isMovingView = null;
+                let direction = null;
+                let currentNote = null;
                 let wMultiplier = 1; // is to make scaling easier for long audios according to current px per sec, disabled for now
+                let defaultMM = 20; // 'Default Mouse Move' is to calculate wMultiplier (should vary according to screen size (availiable space to make a gesture))
                 
                 document.querySelector('audio').onloadedmetadata = () => audioInit();
 
@@ -94,6 +128,13 @@
                 window.onresize = widthRenewer;
                 function widthRenewer() {
                     viewportWidth = document.querySelector('.visualization-wrapper').getBoundingClientRect().width;
+                    maxVolumeWidth = volumeBar.getBoundingClientRect().width;
+                    var pxPerSec = viewportWidth / audio.duration;
+                    if (pxPerSec > 5) { // 5px is default pxPerSec (according to sreen size); I have the same parameter in the script (audio Init)
+                        wMultiplier = (defaultMM * pxPerSec) / 100;
+                    } else {
+                        wMultiplier = 1;
+                    }
                     var marks = document.querySelector('.box');
                     if (marks) {
                         marksControl();
@@ -130,7 +171,7 @@
                 document.getElementById('progress-wrapper')
                 .addEventListener('mousedown', function (e) {
                     restrictSelecting();
-                    changeTime(e.pageX);
+                    setTimeByPageX(e.pageX);
                     isChangingTime = true;
                 })
 
@@ -139,12 +180,12 @@
                     playbackRate(e.target.value)
                 })
 
-                document.getElementById('areas')
+                document.querySelector('.areas-placeholder')
                 .addEventListener('mousedown', function (e) {
-                    if (e.target.className != 'area') {
+                    if(e.target.className != 'area') {
                         restrictSelecting();
-                        selectStart(e.pageX);
-                        isSelecting = true;
+                        buildStart(e.pageX);
+                        isBuilding = true;
                     }
                 })
 
@@ -152,7 +193,7 @@
                 .addEventListener('click', function (e) {
                     if (e.target.className == 'area') {
                         var id = e.target.getAttribute('id');
-                        areaClick(id, e.target);
+                        select(id);
                     }
                 })
                 document.getElementById('areas')
@@ -162,22 +203,25 @@
                         if (direction) {
                             restrictSelecting();
                             var id = e.target.getAttribute('id');
-                            scaleAreaStart(e.target, id);
+                            select(id);
                             isScalingArea = true;
                         } else {
                             restrictSelecting();
                             var id = e.target.getAttribute('id');
-                            moveStart(e.target, id);
-                            isInteracting = true;
+                            select(id);
+                            isMoving = true;
                         }
                     }
                 })
-                document
-                .addEventListener('mousemove', function (e) {
-                    if (isSelecting === true) {
-                        selecting(e.pageX);
+                document.querySelector('.note-ref-placeholder')
+                .addEventListener('mousedown', function (e) {
+                    select(e.target.closest('.note-ref-wrapper').getAttribute('id'));
+                })
+                document.addEventListener('mousemove', function (e) {
+                    if (isBuilding === true) {
+                        building(e.pageX);
                     }
-                    if (isInteracting === true) {
+                    if (isMoving === true) {
                         moving(e.movementX);
                         isMoved = true;
                     }
@@ -185,10 +229,9 @@
                         scaleArea(e.movementX);
                     }
                     if (isChangingTime === true) {
-                        changeTime(e.pageX);
+                        setTimeByPageX(e.pageX);
                     }
                     if (isScalingView === true) {
-                        console.log(e.movementX)
                         var viewport = document.querySelector('.visualization-wrapper');
                             viewport.style.width = ((viewport.getBoundingClientRect().width + (e.movementX * wMultiplier))) + 'px';
                         widthRenewer();
@@ -197,25 +240,22 @@
                         var viewport = document.querySelector('.visualization-wrapper');
                             viewport.style.marginLeft = (parseFloat(viewport.style.marginLeft) + e.movementX) + 'px';
                     }
+                    if (isChangingVolume === true) {
+                        changeVolume(e);
+                    }
                 })
-                document
-                .addEventListener('mouseup', function (e) {
-                    if (isEmptySpace(e.target) && !isInteracting && !isScalingArea && !isSelecting) {
-                        currentArea = null;
-                        currentAreaNode = null;
-                        console.log('currentArea deselected')
+                document.addEventListener('mouseup', function (e) {
+                    if (isBuilding === true) {
+                        buildEnd(e.pageX);
+                        isBuilding = false;
                     }
-                    if (isSelecting === true) {
-                        selectEnd(e.pageX);
-                        isSelecting = false;
-                    }
-                    if (isInteracting === true && isMoved === true) {
+                    if (isMoving === true && isMoved === true) {
                         moveEnd();
-                        isInteracting = false;
+                        isMoving = false;
                         isMoved = false;
                     }
-                    if (isInteracting === true && isMoved === false) {
-                        isInteracting = false;
+                    if (isMoving === true && isMoved === false) {
+                        isMoving = false;
                     }
                     if (isScalingArea === true) {
                         scaleAreaEnd();
@@ -231,13 +271,25 @@
                     if (isMovingView === true) {
                         isMovingView = false;
                     }
+                    if (isChangingVolume === true) {
+                        changeVolume(e);
+                        isChangingVolume = false;
+                        }
                     allowSelecting();
+                })
+
+                document.addEventListener('mousedown', function (e) {
+                    if (isEmptySpace(e.target) && !isMoving && !isScalingArea && !isBuilding) {
+                        deselect();
+                        console.log('currentNote deselected')
+                    }
                 })
 
                 function isEmptySpace(node) {
                     if (node.localName == 'html' || node.localName == 'body' || node.localName == 'div') {
                         if (node.localName == 'div') {
-                            if (node.className != 'area') {
+                            if ((currentNote && currentNote.type == 'area' && node.className != 'note' && node.className != 'area')
+                            || (currentNote && currentNote.type == 'point' && node.className != 'note' && node.className != 'note-ref')) {
                                 return true;
                             }
                         } else {
@@ -254,14 +306,7 @@
                 <script>
                     document.getElementById('write-btn')
                     .addEventListener('click', function () {
-                        var text = document.getElementById('note').value;
-                        var sign = document.getElementById('sign').value;
-                        if (!currentArea) {
-                            annotate(text, sign);
-                        }
-                        if (currentArea) {
-                            annotateArea(text)
-                        }                        
+                        makeNote();
                     });
                 </script>
                 <input type="button" id="erase-btn" value="Remove note">
@@ -269,32 +314,51 @@
                     document.getElementById('erase-btn')
                     .addEventListener('click', function () {
                         if (currentNote) {
-                            removeNote();
-                        }
-                        if (currentArea) {
-                            removeArea();
+                            currentNote.remove();
                         }
                     });
                 </script>
             </div>
             <div class="input-wrapper">
-                <textarea id="note"></textarea>
-                <input type="text" id="sign">
+                <input class="text-input" type="text" id="title" placeholder="Title">
+                <textarea class="text-input" id="note" placeholder="Something to note..." oninput="heightControl(this)"></textarea>
+                <textarea class="text-input text-double" id="text-double" disabled></textarea>
+                <script>
+                    let initialTextHeight = document.getElementById('note').scrollHeight;
+
+                    function textDoubleControl() {
+                        var text = document.getElementById('note');
+                        var double = document.getElementById('text-double');
+                            double.value = text.value;
+                    }
+
+                    function heightControl(field) {
+                        textDoubleControl();
+                        if (field.scrollHeight > field.clientHeight) {
+                            field.style.height = field.scrollHeight + 'px';
+                            } else {
+                            var double = document.getElementById('text-double');
+                        if (double.scrollHeight < field.scrollHeight && double.offsetHeight > initialTextHeight) {
+                            field.style.height = double.scrollHeight + 'px';
+                            }
+                        }
+                    }
+                </script>
             </div>
         </div>
         <div class="notes-wrapper">
-            <div class="notes" id="notes">
+            <h3>Timestamped notes</h3>
+            <div class="note-list" id="note-list">
+            </div>
+            <h3>Area notes</h3>
+            <div class="area-list" id="area-list">
             </div>
             <script>
-                let currentNote = null;
-                let currentNoteNode = null;
-
-                document.getElementById('notes')
+                document.getElementById('note-list')
                 .addEventListener('click', function (e) {
                     var node = e.target;
                     if (node.className == 'note') {
-                        var id = node.getAttribute('i');
-                        noteClick(id, node);
+                        select(node.getAttribute('id'))
                     }
                 })
             </script>
