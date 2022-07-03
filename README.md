@@ -5,8 +5,8 @@ There's a stupid song I took as an audio from a festival record, just change it 
 
 With wavenote you can:
 - Listen to an audio file!
-- Make timestamped notes. There are two inputs, they are supposed to be Text and Signature, I've not labeled them these inputs. To create note just click on the track, write some text and hit 'Make note'
-- Create areas that refferes to a segment of an audio and attach some text to them, as for notes but without signature. There is a space between the ruler and the track. You can create an area by clicking+dragginf there.
+- Make timestamped notes. To create note just click on the track, write some text and hit 'Make note'
+- Create areas that refferes to a segment of an audio and attach some text to them. There is a space between the ruler and the track. You can create an area by clicking+draggin there.
 - Save your notes as .json.
 - Load your notes.json
 
