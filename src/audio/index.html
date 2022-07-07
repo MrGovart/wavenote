@@ -13,7 +13,22 @@
     <div class="main-container">
     <div class="sidewall"></div>
     <div class="view-container">
-        
+        <div class="buttons">
+            <label for="audio-input">Load your audio <input type="file" id="audio-input" accept=".mp3, .wav"></label>
+            <script>
+                var audioReader = new FileReader();
+                audioReader.addEventListener("load", () => {
+                    audio.src = audioReader.result;
+                    audioInit();
+                });
+                document.getElementById("audio-input")
+                .addEventListener("change", async function (e) {
+                    if (e.target.files[0]) {
+                        audioReader.readAsDataURL(e.target.files[0]);
+                    }
+                });
+            </script>
+        </div>
         <div class="buttons">
             <input type="button" id="save-btn" value="Save">
             <script>

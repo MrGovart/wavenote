@@ -13,8 +13,12 @@
 
 body {
   margin: 0;
+  font-family: sans-serif;
 }
 
+textarea {
+  font-family: inherit;
+}
 .main-container {
   display: flex;
   overflow-x: hidden;

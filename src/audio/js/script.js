@@ -1,11 +1,11 @@
 'use strict'
 
 // TODO: label for area node
-// TODO: load your own audio btnXfeature
+// TODO: load your own audio btnXfeature — done!
 // TODO: remove ID and type from note constructor (at least type)
 // TODO: pretty look style
 // TODO: mobile view — make touch events listeners
-// TODO: ID generation
+// TODO: ID generation — done!
 // TODO: area-list click and sort (add timecodes or smth)
 // TODO: make 'switch' instead of 'if' in Note class methods
 // TODO: total check up LOL
@@ -19,7 +19,7 @@
     document.body.removeChild(element);
 }
 
-// Notes Renewal
+// Notes
 
 const list = [];
 
@@ -34,11 +34,7 @@ class Note {
         } else {
             this.type = 'area';
         }
-        if (this.type == 'point') {
-            this.id = start;
-        } else {
-            this.id = start + ':' + end;
-        }
+        this.id = id;
         this.visualNode = visualNode;
         this.textualNode = textualNode;
     }
@@ -58,14 +54,11 @@ class Note {
     refresh() {
         this.title = document.getElementById('title').value;
         this.text = document.getElementById('note').value;
-        this.createTextual();
         if (this.type == 'area') {
             this.start = parseFloat(this.visualNode.style.marginLeft);
             this.end = this.start + parseFloat(this.visualNode.style.width);
-            this.id = this.start + ':' + this.end;
-            this.visualNode.setAttribute('id', this.start + ':' + this.end);
-            if (this.textualNode) {
-                this.textualNode.setAttribute('id', this.start + ':' + this.end);
+            if (!this.textualNode) {
+                this.createTextual();
             }
         }
         console.log('refreshed')
@@ -92,7 +85,7 @@ class Note {
                 var div = document.createElement('div');
                     div.className = 'note-ref-wrapper';
                     div.style.marginLeft = this.start + '%';
-                    div.setAttribute('id', this.start)
+                    div.setAttribute('id', this.id)
                     div.appendChild(mark);
                     div.appendChild(ref);
                 notes.appendChild(div);
@@ -120,7 +113,7 @@ class Note {
                 var div = document.createElement('div');
                     div.className = 'note';
                     div.innerHTML = Math.round((this.start/100)*audio.duration) + ': ' + this.title + '<br>' + this.text;
-                    div.setAttribute('id', this.start)
+                    div.setAttribute('id', this.id)
                 container.appendChild(div);
                 this.textualNode = div;
             }
@@ -140,6 +133,12 @@ class Note {
         }
     }
 }
+
+const genID = () => new Promise ((resolve) => {
+    setTimeout(() => {
+        resolve(Date.now() * Math.random());
+    }, 1)
+})
 
 function sortList() { // it is nessasary to be able to hover over the visualization of point notes (as they are stacking)
     list.sort((a, b) => {
@@ -194,19 +193,20 @@ function find(id) {
     return note;
 }
 
-function makeNote() {
+async function makeNote() {
     if (currentNote) {
         currentNote.refresh();
     } else {
         var title   = document.getElementById('title').value;
         var text    = document.getElementById('note').value;
-        var start = ((Math.round(audio.currentTime)) / audio.duration) * 100; // to seconds but perc as always
+        var start   = ((Math.round(audio.currentTime)) / audio.duration) * 100; // to seconds but perc as always
         if (list.find((note) => { return note.id == start; })) {
             console.log('There is already a note at this point')
             // ask if it is change
             return;
         }
-        var note = new Note(start, null, title, text);
+        var id = await genID();
+        var note = new Note(start, null, title, text, id);
             note.createVisual();
             note.createTextual();
         list.push(note);
@@ -300,7 +300,7 @@ function buildEnd(position) {
 }
 
 // Registering the area
-function initArea() {
+async function initArea() {
     var pxPerSec = viewportWidth / audio.duration;
     var width = buildingArea.node.offsetWidth;
     if (width <= pxPerSec || isNaN(width)) {
@@ -311,7 +311,8 @@ function initArea() {
     }
     var start = parseFloat(buildingArea.node.style.marginLeft);
     var end = parseFloat(buildingArea.node.style.width);
-    var note = new Note(start, start + end, null, null, null, null, buildingArea.node);
+    var id = await genID();
+    var note = new Note(start, start + end, null, null, id, null, buildingArea.node);
         note.visualNode.setAttribute('id', note.id);
         list.push(note);
         select(note.id);
@@ -478,6 +479,7 @@ function playbackRate(rate) {
 function initAllMarks() {
     var markTypes = [1, 5, 10, 15, 30, 60, 120]
     var ruler = document.querySelector('.ruler')
+        ruler.replaceChildren();
     markTypes.forEach(function(type, indx) {
         var ceilQ = Math.ceil(audio.duration / type);
         var box = document.createElement('div');
