@@ -8,18 +8,31 @@
   --mark-4: 0px;
   --mark-5: 0px;
   --mark-6: 0px;
-  --player-elements-height: 10px;
+  --player-elements-height: 30px;
+  --player-progress-height: 100px;
 }
 
 body {
   margin: 0;
-  font-family: sans-serif;
+  font-family: "Comfortaa", sans-serif;
 }
 
-textarea {
+button,
+textarea,
+input[type=file]::-webkit-file-upload-button,
+input {
   font-family: inherit;
 }
+
+select,
+button,
+input[type=button],
+input[type=file]::-webkit-file-upload-button {
+  height: 50px;
+}
+
 .main-container {
+  position: relative;
   display: flex;
   overflow-x: hidden;
 }
@@ -29,12 +42,80 @@ textarea {
   flex-direction: column;
   align-items: center;
   flex-grow: 12;
-  margin: 10px;
+  margin-top: 10px;
+  margin-bottom: 10px;
+}
+
+.styled-btn {
+  border-style: solid solid outset;
+  border-width: 1px 1px 6px 1px;
+  border-color: #2C3333;
+  transition: border-width .25s ease-in-out .0s;
+}
+
+.styled-btn:hover {
+  border-width: 1px 1px 5px 1px;
+}
+
+.styled-btn[hovered] {
+  border-width: 1px 1px 5px 1px;
+  border-color: red;
+}
+
+.styled-btn:active {
+  transition: none;
+  border-width: 1px;
+}
+
+.styled-btn[pushed] {
+  transition: none;
+  border-width: 1px;
 }
 
 .buttons {
+  height: 50px;
   margin-bottom: 10px;
-  min-width: 360px;
+  min-width: 285px;
+}
+
+.buttons-right {
+  width: 100%;
+  display: flex;
+  justify-content: end;
+}
+
+.buttons-row {
+  display: flex;
+  justify-content: center;
+}
+
+.load-wrapper {
+  position: relative;
+}
+
+.load-wrapper:hover .load-btn {
+  border-width: 1px 1px 5px 1px;
+}
+
+.load-wrapper:active .load-btn {
+  border-width: 1px 1px 5px 1px;
+  transition: none;
+  border-width: 1px;
+}
+
+.load-btn {
+  width: 50px;
+  position: absolute;
+}
+
+.load-input {
+  width: 50px;
+  z-index: 9999;
+  opacity: 0;
+}
+
+.load-input::-webkit-file-upload-button {
+  width: 50px;
 }
 
 #erase-btn {
@@ -50,17 +131,26 @@ textarea {
 
 .viewport {
   width: 100%;
-  height: 90px;
+  height: 160px;
   display: flex;
   flex-direction: row;
   align-items: center;
   justify-content: flex-start;
+  margin-top: 25px;
+  margin-bottom: 25px;
 }
+
+.visualization-back {
+  width: 50%;
+  height: 100%;
+  background-color: #fafafa;
+}
+
 
 .sidewall {
   z-index: 100;
   flex-grow: 1;
-  background-color: #000000;
+  background-color: #2C3333;
 
 }
 
@@ -71,26 +161,11 @@ textarea {
   background-color: #f1f1f1;
   font-size: 10px;
   align-items: flex-end;
-}
-
-.ruler:hover{
-  width: 100%;
-  height: var(--player-elements-height);
-  display: flex;
-  background-color: #f1f1f1;
-  font-size: 10px;
   cursor: grab;
-  align-items: flex-end;
 }
 
 .ruler:active{
-  width: 100%;
-  height: var(--player-elements-height);
-  display: flex;
-  background-color: #f1f1f1;
-  font-size: 10px;
   cursor: grabbing;
-  align-items: flex-end;
 }
 
 .box {
@@ -124,18 +199,24 @@ textarea {
 .form-wrapper {
   width: 100%;
   margin-bottom: 10px;
+  display: flex;
+  justify-content: center;
 }
 
 .input-wrapper {
-  width: 100%;
+  min-width: 285px;
+  width: 50%;
   display: flex;
   flex-direction: column;
   align-items: center;
 }
 
 .text-input {
-  width: 50%;
+  width: 100%;
+  display: flex;
+  justify-content: center;
   resize: none;
+  box-sizing: border-box;
 }
 
 #note {
@@ -168,14 +249,14 @@ textarea {
   align-items: center;
 }
 
+.visualization-wrapper[smooth] {
+  transition: margin-left 0.5s linear;
+}
+
 .areas-placeholder {
   height: var(--player-elements-height);
   width: 100%;
-}
-
-.areas-placeholder:hover {
-  height: var(--player-elements-height);
-  width: 100%;
+  background-color: #fafafa;
   cursor: copy;
 }
 
@@ -204,40 +285,44 @@ textarea {
 .progress-wrapper {
   position: relative;
   width: 100%;
-}
-
-.progress-wrapper:hover {
-  position: relative;
-  width: 100%;
   cursor: pointer;
 }
 
 .progress {
   position: absolute;
   width: var(--progress);
-  height: var(--player-elements-height);
-  background-color: #000000;
+  height: var(--player-progress-height);
+  background-color: rgb(111, 223, 223);
+}
+
+.progress[smooth] {
+  transition: width 0.5s linear;
 }
 
 .progress-bar {
   width: 100%;
-  height: var(--player-elements-height);
+  height: var(--player-progress-height);
   background-color: #d9d9d9;
+}
+
+.volume-label {
+  font-size: 10px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  width: 15%;
 }
 
 .volume-wrapper {
   background-color: #d9d9d9;
-  width: 15%;
-}
-
-.volume-wrapper:hover {
-  background-color: #d9d9d9;
-  width: 15%;
   cursor: pointer;
+  width: 100%;
+  height: 100%;
 }
 
 .volume {
-  background-color: aqua;
+  background-color: #6FDFDF;
   width: var(--volume);
   height: var(--player-elements-height);
 }
@@ -262,8 +347,8 @@ textarea {
   height: 30px;
   width: 1px;
   background: linear-gradient(
-    rgba(0, 255, 255, .95),
-    rgba(0, 255, 255, .1));
+    rgba(111, 223, 223, .95),
+    rgba(111, 223, 223, .1));
 }
 
 .note-ref {
@@ -273,40 +358,103 @@ textarea {
   padding-left: 5px;
   padding-right: 10px;
   height: 100%;
-  background-color: #ffffff;
   -webkit-transition: opacity .25s ease-in-out .0s;
   transition: opacity .25s ease-in-out .0s;
   opacity: 0;
 }
 
+.note-ref-wrapper[selected] .note-ref,
 .note-ref-wrapper:hover .note-ref {
-  font-size: 12px;
-  display: flex;
-  align-items: center;
-  padding-left: 5px;
-  padding-right: 10px;
-  height: 100%;
-  background-color: #ffffff;
-  -webkit-transition: opacity .25s ease-in-out .0s;
-  transition: opacity .25s ease-in-out .0s;
-  opacity: 1;
-  z-index: 9999;
-}
-
-.note-ref-wrapper[selected] .note-ref {
-  font-size: 12px;
-  display: flex;
-  align-items: center;
-  padding-left: 5px;
-  padding-right: 10px;
-  height: 100%;
-  background-color: #ffffff;
-  -webkit-transition: opacity .25s ease-in-out .0s;
-  transition: opacity .25s ease-in-out .0s;
   opacity: 1;
   z-index: 9999;
 }
 
 .note {
   margin: 5px;
+}
+
+.entry-overlay-back {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+  background-color: white;
+  z-index: 99999;
+}
+
+.entry-overlay-wrapper {
+  position: relative;
+  margin-top: 10px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+  width: 200px;
+  height: 200px;
+
+}
+
+.entry-overlay-wrapper * {
+  cursor: pointer;
+}
+
+.entry-overlay-wrapper > input[type=file]::-webkit-file-upload-button {
+  cursor: pointer;
+  width: 100%;
+  height: 50%;
+}
+
+.entry-overlay-dropzone {
+  position: absolute;
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  line-height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  border: 0.5em dashed #f3f0e9;
+}
+
+.entry-overlay-dropzone svg {
+  position: absolute;
+  fill: #f3f0e9;
+}
+
+.dropzone-input {
+  z-index: 9999;
+  position: absolute;
+  opacity: 0;
+  height: 100%;
+  width: 100%;
+}
+
+.dropzone-input:hover + .entry-overlay-dropzone {
+  border: 0.5em dashed rgb(230, 230, 230);
+}
+
+.dropzone-input:hover + .entry-overlay-dropzone svg {
+  fill: rgb(230, 230, 230);
+}
+
+.center-label {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+}
+
+.textlike-button {
+  margin-top: 10px;
+  font-size: 10px;
+  cursor: pointer;
+}
+
+.textlike-button:hover {
+  color: rgb(164, 214, 214);
 }

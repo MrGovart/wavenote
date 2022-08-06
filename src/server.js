@@ -5,6 +5,9 @@ const path = require('path');
 
 app.use(express.static(__dirname));
 
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'audio', 'index.html'));
+})
 
 app.listen(port, () => {
     console.log(`Server running at port ${port}`)

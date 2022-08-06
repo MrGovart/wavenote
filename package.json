@@ -1,11 +1,22 @@
 {
   "name": "wavenote",
   "version": "1.0.0",
-  "description": "",
+  "description": "So basically it's a tool that helps you make notes on audio track.\r There's a stupid song I took as an audio from a festival record, just change it with stuff you want.",
   "main": "server.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "VaaSt",
-  "license": "ISC"
+  "license": "ISC",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MrGovart/wavenote.git"
+  },
+  "bugs": {
+    "url": "https://github.com/MrGovart/wavenote/issues"
+  },
+  "homepage": "https://github.com/MrGovart/wavenote#readme",
+  "dependencies": {
+    "express": "^4.18.1"
+  }
 }

@@ -1,14 +1,32 @@
 'use strict'
 
+// TODO: remake scaling again. Scale to 100% or default                                                 — done! but I want more, I think
+// TODO: start-up window                                                                                - done!
+// TODO: new file button to recall start-up                                                             - done!
 // TODO: label for area node
-// TODO: load your own audio btnXfeature — done!
+// TODO: correctview correction                                                                         — done! kinda
+// TODO: viewportWidth to visualizationWrapperWidth — now viewport and view should just replace each other
+// TODO: load your own audio btnXfeature                                                                — done!
 // TODO: remove ID and type from note constructor (at least type)
-// TODO: pretty look style
-// TODO: mobile view — make touch events listeners
-// TODO: ID generation — done!
+// TODO: pretty look style:
+//                          buttons                                                                     — done
+//                          player scrapper following (restrict firing when holding a MB on the ruler   – done
+//                                                                             and optimize this shit)
+//                          ruler to svg to get rid of chunky scaling                                   – unnessasary
+//                          color-palette                                                               – kinda done
+// TODO: mobile view — make touch events listeners                                                      — done
+// TODO: update scaling function to read two-fingers gestures
+// TODO: ID generation                                                                                  — done!
 // TODO: area-list click and sort (add timecodes or smth)
 // TODO: make 'switch' instead of 'if' in Note class methods
 // TODO: total check up LOL
+// TODO: correct scaling mod
+// TODO: correct end of interaction for touch gestures
+//                                          - cancel function - done
+// TODO: add area-size limit on scaling - done!
+// TODO: deselect on tap anywhere on the viewport
+// TODO: is it possible to changeprogress on touchstart without triggering it on touchstart with 2 touches - done! timeouts are added
+// TODO: make forced changeprogress run without transition
 
  function save(filename, textInput) {
     var element = document.createElement('a');
@@ -47,7 +65,7 @@ class Note {
             this.visualNode.remove();
         }
         var id = this.id;
-        list.splice(list.findIndex((note) => {return note.id == id}, 1));
+        list.splice(list.findIndex((note) => {return note.id == id}), 1);
         deselect();
     }
 
@@ -69,6 +87,10 @@ class Note {
             note.value                         = this.text;
         document.getElementById('title').value = this.title
         heightControl(note);
+        if (audio.paused) {
+            setTimeByPercent(this.start);
+        }
+        updateProgress();
     }
 
     createVisual() {
@@ -169,9 +191,9 @@ function select(id) {
     currentNote = find(id);
     currentNote.visualNode.setAttribute('selected', '');
     currentNote.show();
-    setTimeByPercent(currentNote.start);
     document.getElementById('write-btn').value = 'Save note';
     document.getElementById('erase-btn').style.visibility = 'visible';
+
 }
 
 function deselect() {
@@ -189,7 +211,6 @@ function find(id) {
     var note = list.find((note) => {
         return note.id == id;
     });
-    console.log(note)
     return note;
 }
 
@@ -301,7 +322,7 @@ function buildEnd(position) {
 
 // Registering the area
 async function initArea() {
-    var pxPerSec = viewportWidth / audio.duration;
+    pxPerSec = viewportWidth / audio.duration;
     var width = buildingArea.node.offsetWidth;
     if (width <= pxPerSec || isNaN(width)) {
         buildingArea.node.remove();
@@ -367,6 +388,11 @@ function scaleArea(move) {
             }
             break;
         case 'right':
+            if (pxPerSec >= (width/100)*viewportWidth + movePerc) {
+                console.log('min')
+                node.style.width = (pxPerSec/viewportWidth)*100 + '%';
+                break;
+            }
             if (margin + width + movePerc >= 100) {
                 node.style.width = (100 - margin) + '%';
                 break;
@@ -375,6 +401,30 @@ function scaleArea(move) {
                 node.style.width = (width + movePerc) + '%';
             }
             break;
+        case 'center':
+            var movePercMargin = movePerc/2;
+            if (margin - movePercMargin <= 0) { // if it touches left side
+                node.style.marginLeft = '0%';
+                if (width + movePerc <= 100) {
+                    node.style.width = (width + movePercMargin) + '%';
+                } else {
+                    console.log('jump')
+                    node.style.width = 100 + '%';
+                }
+                break;
+            }
+            if (margin + width + (movePerc*1.5) >= 100) { // if it touches right side
+                console.log('stuck')
+                node.style.width = (width + movePercMargin) + '%';
+                node.style.marginLeft = (margin - movePercMargin) + '%';
+                //node.style.width = (100 - margin) + '%';
+                break;
+            }
+            node.style.width = (width + movePerc) + '%';
+            node.style.marginLeft = (margin - movePercMargin) + '%';
+            break;
+        default:
+            console.log('direction is not specified');
     }
 }
 
@@ -402,7 +452,7 @@ var initialWidth;
 
 function audioInit () {
     audio = document.getElementById('audio');
-    initialWidth = audio.duration * 5; // 5px for each second is the based value
+    initialWidth = audio.duration * initialPPS; // initialpps defined in index
     var time = secToHMS(audio.duration);
     document.getElementById('time-duration').innerHTML = time.hours + ':' + time.minutes + ':' + time.seconds;
     document.querySelector('.visualization-wrapper').style.width = initialWidth + 'px';
@@ -410,32 +460,100 @@ function audioInit () {
     initAllMarks();
 }
 
-function togglePlaying() {
+function togglePlaying(btn) {
     var audio = document.getElementById('audio');
-    var control = document.getElementById('control');
-    var play = control.innerHTML === 'Play'
+    var play = document.getElementById('control-play');
+    var isPlaying = play.hasAttribute('pushed');
     var method
   
-    if (play) {
-        control.innerHTML = 'Pause'
-        method = 'play'
+    if (isPlaying) {
+        if (btn === 'Pause') {
+            play.removeAttribute('pushed');
+            method = 'pause'
+        } else {
+            return;
+        }
     } else {
-        control.innerHTML = 'Play'
-        method = 'pause'
+        if (btn === 'Play') {
+            play.setAttribute('pushed', '');
+            method = 'play';
+        } else {
+            return;
+        }
     }
   
     audio[method]()
 }
 
+var updateTimer;
 function updateProgress() {
+    clearTimeout(updateTimer);
     var style = document.body.style;
-    var audio = document.getElementById('audio');
     var percentage = (audio.currentTime / audio.duration)*100;
     
     style.setProperty('--progress', percentage + '%');
 
     var time = secToHMS(audio.currentTime);
     document.getElementById('time-current').innerHTML = time.hours + ':' + time.minutes + ':' + time.seconds;
+    correctView();
+    if (!audio.paused) {
+        updateProgressLive();
+    }
+}
+
+let focusOnCenter = false;
+
+function toggleCenter() {
+    focusOnCenter = !focusOnCenter;
+    if (focusOnCenter) {
+        console.log('focused')
+        viewport.style.marginLeft = -((audio.currentTime / audio.duration)*(viewportWidth)) + viewWidth/2 + 'px';
+        document.getElementById('toggle-center').setAttribute('pushed', '');
+        } else {
+            document.getElementById('toggle-center').removeAttribute('pushed');
+        }
+}
+
+function center() {
+    if (focusOnCenter) {
+        console.log('centered')
+        viewport.style.marginLeft = -((audio.currentTime / audio.duration)*(viewportWidth)) + viewWidth/2 + 'px';
+    }
+}
+
+function updateProgressLive() {
+    clearTimeout(updateTimer);
+    updateTimer = setTimeout(updateProgressLive, 500);
+    var mod = 0.5 * audio.playbackRate;
+    var style = document.body.style;
+    var percentage = ((audio.currentTime + mod) / audio.duration)*100;
+    if (focusOnCenter) {
+        var shift = -((percentage/100) * viewportWidth) + (viewWidth/2);
+        console.log('smooth is applied')
+        viewport.setAttribute('smooth', '');
+        viewport.style.marginLeft = shift + 'px';
+    }
+
+    progress.setAttribute('smooth', '')
+    
+    style.setProperty('--progress', percentage + '%');
+
+    var time = secToHMS(audio.currentTime);
+    document.getElementById('time-current').innerHTML = time.hours + ':' + time.minutes + ':' + time.seconds;
+    correctView();
+}
+
+function correctView() {
+    var progress = audio.currentTime / audio.duration;
+    var progressPx = viewportWidth * progress;
+    var shift = parseInt(document.querySelector('.visualization-wrapper').style.marginLeft);
+    if (progressPx < -shift) {
+        document.querySelector('.visualization-wrapper').style.marginLeft = -progressPx + 'px';
+    } else {
+    if (progressPx > -shift + viewWidth) {
+        document.querySelector('.visualization-wrapper').style.marginLeft = -progressPx + viewWidth + 'px';
+        }
+    }
 }
 
 function secToHMS(secs) {
@@ -461,17 +579,23 @@ function setTime(i) { //
 function setTimeByPercent(percent) {
     var time = (audio.duration / 100) * percent;
     audio.currentTime = time;
+    updateProgress();
 }
 
 function setTimeByPageX(pageX) {
+    if (lastTouchX) {
+        pageX = lastTouchX;
+    }
     var position = pageX - document.getElementById('progress-wrapper').getClientRects()[0].left;
     var percentage = (position / viewportWidth) * 100;
     setTimeByPercent(percentage);
 }
 
 function playbackRate(rate) {
-    var audio = document.getElementById('audio');
     audio.playbackRate = rate;
+    if (!audio.paused) {
+        updateProgressLive()
+    }
 }
 
 // Ruler
@@ -506,44 +630,170 @@ function marksControl() {
     var width = parseFloat(document.querySelector('.visualization-wrapper').style.width);
     var secPerMark = 50 / (width / audio.duration);
     var prevMarks = document.querySelector('[shown]');
-    if (prevMarks) {
-        prevMarks.style.display = 'none';
-        prevMarks.removeAttribute('shown');
-    }
     if (secPerMark < 2) {
         var marksToShow = document.getElementById('mark-0')
+        if (prevMarks != marksToShow) {
+            if (prevMarks) {
+                prevMarks.style.display = 'none';
+                prevMarks.removeAttribute('shown');
+            }
             marksToShow.style.display = 'flex';
             marksToShow.setAttribute('shown', '');
+        } else {
+            return;
+        }
     } else {
     if (secPerMark < 7) {
         var marksToShow = document.getElementById('mark-1')
+        if (prevMarks != marksToShow) {
+            if (prevMarks) {
+                prevMarks.style.display = 'none';
+                prevMarks.removeAttribute('shown');
+            }
             marksToShow.style.display = 'flex';
             marksToShow.setAttribute('shown', '');
+        } else {
+            return;
+        }
     } else {
     if (secPerMark < 13) {
         var marksToShow = document.getElementById('mark-2')
+        if (prevMarks != marksToShow) {
+            if (prevMarks) {
+                prevMarks.style.display = 'none';
+                prevMarks.removeAttribute('shown');
+            }
             marksToShow.style.display = 'flex';
             marksToShow.setAttribute('shown', '');
+        } else {
+            return;
+        }
     } else {
     if (secPerMark < 19) {
         var marksToShow = document.getElementById('mark-3')
+        if (prevMarks != marksToShow) {
+            if (prevMarks) {
+                prevMarks.style.display = 'none';
+                prevMarks.removeAttribute('shown');
+            }
             marksToShow.style.display = 'flex';
             marksToShow.setAttribute('shown', '');
+        } else {
+            return;
+        }
     } else {
     if (secPerMark < 35) {
         var marksToShow = document.getElementById('mark-4')
+        if (prevMarks != marksToShow) {
+            if (prevMarks) {
+                prevMarks.style.display = 'none';
+                prevMarks.removeAttribute('shown');
+            }
             marksToShow.style.display = 'flex';
             marksToShow.setAttribute('shown', '');
+        } else {
+            return;
+        }
     } else {
     if (secPerMark < 66) {
         var marksToShow = document.getElementById('mark-5')
+        if (prevMarks != marksToShow) {
+            if (prevMarks) {
+                prevMarks.style.display = 'none';
+                prevMarks.removeAttribute('shown');
+            }
             marksToShow.style.display = 'flex';
             marksToShow.setAttribute('shown', '');
+        } else {
+            return;
+        }
     } else {
     if (secPerMark < 127) {
         var marksToShow = document.getElementById('mark-6')
+        if (prevMarks != marksToShow) {
+            if (prevMarks) {
+                prevMarks.style.display = 'none';
+                prevMarks.removeAttribute('shown');
+            }
             marksToShow.style.display = 'flex';
             marksToShow.setAttribute('shown', '');
+        } else {
+            return;
+        }
     }
     }}}}}}
+}
+
+function moveView(movementX) {
+    var shift = parseFloat(viewport.style.marginLeft);
+    var width = viewport.getBoundingClientRect().width;
+    if (shift + movementX > viewWidth/2) {
+        viewport.style.marginLeft = viewWidth/2 + 'px';
+        } else {
+    if (((viewWidth/2) - shift - movementX) > width) {
+        viewport.style.marginLeft = (viewWidth/2 - width) + 'px'; 
+        } else {
+        viewport.style.marginLeft = (shift + movementX) + 'px';
+    }}
+}
+
+function scaleView(movementX) {
+    var width = viewport.getBoundingClientRect().width;
+    if (width + (movementX * wMultiplier) < viewWidth/2) {
+        return;
+    }
+    width = width + (movementX * wMultiplier);
+    viewport.style.width = width + 'px';
+    viewport.style.marginLeft = -((width * proportion) - (viewWidth/2)) + 'px'; // focus on center
+// -- this particular shit took so much time i dont want to remove it, it is for the case if we want to focus, but dont want it to move farther than start and end of the track --
+//                        var shift = viewport.getBoundingClientRect().left - sideWidth;
+//                        var width = viewport.getBoundingClientRect().width;
+//                        if ((width + shift) <= viewWidth) {                                 // if it is rested against the right
+//                            if (width + (e.movementX * wMultiplier) < viewWidth) {          // if it is in its smallest shape
+//                                viewport.style.width = viewWidth + 'px';
+//                                viewport.style.marginLeft = 0 + 'px';
+//                            } else {                                                        // if it is just rested against the right          
+//                                viewport.style.width = (width + (e.movementX * wMultiplier)) + 'px';
+//                                width = viewport.getBoundingClientRect().width;
+//                                shift = -((width * proportion) - (viewWidth/2));
+//                                if (width + shift > viewWidth && shift < 0) { // and it is safe to focus
+//                                    viewport.style.marginLeft = shift + 'px'; // focus on center
+//                                } else {
+//                                    viewport.style.marginLeft = -(width - viewWidth) + 'px'; // just compensate the width rising
+//                                }
+//                            }
+//                        } else {
+//                        if (shift == 0) {                                                   // if it is rested against the left
+//                            if (width + (e.movementX * wMultiplier) > viewWidth) {          // and it is safe to get bigger
+//                                if (width + (e.movementX * wMultiplier) < width) {          // and it is scale down gesture
+//                                    viewport.style.width = (width + (e.movementX * wMultiplier)) + 'px';
+//                                } else {                                                    // it is scale up gesture
+//                                    viewport.style.width = (width + (e.movementX * wMultiplier)) + 'px';
+//                                    width = viewport.getBoundingClientRect().width;
+//                                    shift = -((width * proportion) - (viewWidth/2));
+//                                    if (shift < 0) {
+//                                        viewport.style.marginLeft = shift + 'px'; // focus on center
+//                                    }
+//                                }
+//                            }
+//                        } else {                                                            // if it isn't rested against anything
+//                            if (shift < 0) {
+//                                viewport.style.width = (width + (e.movementX * wMultiplier)) + 'px';
+//                                width = viewport.getBoundingClientRect().width;
+//                                shift = -((width * proportion) - (viewWidth/2));
+//                                if (shift <= 0) {
+//                                    viewport.style.marginLeft = shift + 'px'; // focus on center
+//                                } else {
+//                                    viewport.style.marginLeft = 0 + 'px';
+//                                    }
+//                                }
+//                            }
+//                        }
+    widthRenewer();
+}
+
+function scaleView100() {
+    viewport.style.width = viewWidth + 'px';
+    viewport.style.marginLeft = 0 + 'px'
+    widthRenewer();
 }

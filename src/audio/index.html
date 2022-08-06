@@ -7,15 +7,25 @@
     <!-- jQuery -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Comfortaa">
     <script src="js/script.js"></script>
 </head>
 <body>
     <div class="main-container">
-    <div class="sidewall"></div>
-    <div class="view-container">
-        <div class="buttons">
-            <label for="audio-input">Load your audio <input type="file" id="audio-input" accept=".mp3, .wav"></label>
+        <div class="entry-overlay-back">
+            <label class="center-label">Drop yor audio
+            <div class="entry-overlay-wrapper">
+                <input id="audio-input" type="file" class="dropzone-input">
+                <div class="entry-overlay-dropzone">
+                    <svg version="1.1" xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><title>plus</title><path d="M31 12h-11v-11c0-0.552-0.448-1-1-1h-6c-0.552 0-1 0.448-1 1v11h-11c-0.552 0-1 0.448-1 1v6c0 0.552 0.448 1 1 1h11v11c0 0.552 0.448 1 1 1h6c0.552 0 1-0.448 1-1v-11h11c0.552 0 1-0.448 1-1v-6c0-0.552-0.448-1-1-1z"></path></svg>
+                    <!-- dotted square dropdown asking for audio -->
+                </div>
+            </div>
+            </label>
+            <div class="textlike-button" onclick="loadDemo()">Load demo</div>
             <script>
+                const fileUpload = document.querySelector('.entry-overlay-back');
+
                 var audioReader = new FileReader();
                 audioReader.addEventListener("load", () => {
                     audio.src = audioReader.result;
@@ -25,12 +35,19 @@
                 .addEventListener("change", async function (e) {
                     if (e.target.files[0]) {
                         audioReader.readAsDataURL(e.target.files[0]);
+                        audio.onloadeddata = () => fileUpload.style.display = 'none';
                     }
                 });
+
+                function loadDemo() {
+                    fileUpload.style.display = 'none';
+                }
             </script>
         </div>
-        <div class="buttons">
-            <input type="button" id="save-btn" value="Save">
+    <div class="sidewall"></div>
+    <div class="view-container">
+        <div class="buttons buttons-row">
+            <input class="styled-btn" type="button" id="save-btn" value="Save">
             <script>
                 document.getElementById("save-btn")
                 .addEventListener("click", function () {
@@ -41,7 +58,10 @@
                       save(filename, json);
                 });
             </script>
-            <input type="file" id="load-input" accept=".json">
+            <div class="load-wrapper">
+                <button class="load-btn styled-btn">Load</button>
+                <input class="load-input" type="file" id="load-input" accept=".json">
+            </div>
             <script>
                 const reader = new FileReader();
                 reader.addEventListener("load", () => {
@@ -55,12 +75,18 @@
                     }
                 });
             </script>
+            <input class="styled-btn" type="button" id="start-up-call" onclick="callStartUp()" value="to Start-Up">
+            <script>
+                function callStartUp() {
+                    audio.pause();
+                    fileUpload.style.display = 'flex'
+                }
+            </script>
         </div>
         <div class="audio-wrapper">
             <div class="audio">
                 <audio src="media/audio.mp3" id="audio"></audio>
-                <div class="buttons">
-                    <button id="control" onclick="togglePlaying()">Play</button>
+                <div class="buttons buttons-row">
                     <select id="playbackrate">
                         <option value="0.25">0.25</option>
                         <option value="0.5">0.5</option>
@@ -71,6 +97,10 @@
                         <option value="1.75">1.75</option>
                         <option value="2">2</option>
                     </select>
+                    <button class="styled-btn" id="control-play" onclick="togglePlaying(this.innerHTML)">Play</button>
+                    <button class="styled-btn" id="control-pause" onclick="togglePlaying(this.innerHTML)">Pause</button>
+                    <button class="styled-btn" onclick="scaleView100()">Scale to view</button>
+                    <button id="toggle-center" class="styled-btn" onclick="toggleCenter()">Focus on center</button>
                 </div>
                 <div class="time">
                     <span id="time-current">00:00:00</span>
@@ -78,6 +108,7 @@
                     <span id="time-duration"></span>
                 </div>
             <div class="viewport">
+                <div id="visualization-back" class="visualization-back"></div>
                 <div class="visualization-wrapper" style="margin-left: 0px">
                     <div class="ruler" id="ruler">
                     </div>
@@ -88,40 +119,44 @@
                         <div id="progress" class="progress"></div>
                         <div id="progress-bar" class="progress-bar"></div>
                     </div>
-                    <div class="note-ref-placeholder">
-                    </div>
+                    <div class="note-ref-placeholder"></div>
                 </div>
+                <div id="visualization-back" class="visualization-back"></div>
             </div>
-            <div class="volume-wrapper" id="volumeBar">
-                <div class="volume" id="volume">
-            </div>
-                <script>
-                    let isChangingVolume = false;
-                    var volume = document.getElementById('volume');
-                    var volumeBar = document.getElementById('volumeBar');
-                    let maxVolumeWidth = volumeBar.getBoundingClientRect().width;
-                    volumeBar.addEventListener('mousedown', () => {
-                        isChangingVolume = true;
-                        restrictSelecting();
-                    })
-                    function changeVolume(e) {
-                        if (isChangingVolume === true) {
-                            var style = document.body.style;
-                            var x = e.pageX - volume.getBoundingClientRect().left;
-                            var setVolume = (x / maxVolumeWidth) * 100;
-                            if (setVolume >= 100) {
-                                setVolume = 100;
-                            } else {
-                            if (setVolume <= 0) {
-                                setVolume = 0;
-                                }
+            <label class="volume-label">volume
+                <div class="volume-wrapper" id="volumeBar">
+                    <div class="volume" id="volume"></div>
+                    <script>
+                        let isChangingVolume = false;
+                        var volume = document.getElementById('volume');
+                        var volumeBar = document.getElementById('volumeBar');
+                        let maxVolumeWidth = volumeBar.getBoundingClientRect().width;
+                        volumeBar.addEventListener('mousedown', () => {
+                            isChangingVolume = true;
+                            restrictSelecting();
+                        })
+                        function changeVolume(pageX) {
+                            if (lastTouchX) {
+                                pageX = lastTouchX;
                             }
-                            style.setProperty('--volume', setVolume + '%');
-                            audio.volume = setVolume / 100;
+                            if (isChangingVolume === true) {
+                                var style = document.body.style;
+                                var x = pageX - volume.getBoundingClientRect().left;
+                                var setVolume = (x / maxVolumeWidth) * 100;
+                                if (setVolume >= 100) {
+                                    setVolume = 100;
+                                } else {
+                                if (setVolume <= 0) {
+                                    setVolume = 0;
+                                    }
+                                }
+                                style.setProperty('--volume', setVolume + '%');
+                                audio.volume = setVolume / 100;
+                            }
                         }
-                    }
-                </script>
-            </div>
+                    </script>
+                </div>
+            </label>
             </div>
             <script>
                 let audio;
@@ -136,16 +171,27 @@
                 let currentNote = null;
                 let wMultiplier = 1; // is to make scaling easier for long audios according to current px per sec, disabled for now
                 let defaultMM = 20; // 'Default Mouse Move' is to calculate wMultiplier (should vary according to screen size (availiable space to make a gesture))
+                let proportion; // for scaling
+                var initialPPS = 25; // 25px for each second is the based value
+                var pxPerSec;
+                let progress = document.querySelector('.progress');
+                let viewport = document.querySelector('.visualization-wrapper');
                 
                 document.querySelector('audio').onloadedmetadata = () => audioInit();
 
                 var viewportWidth = document.querySelector('.visualization-wrapper').getBoundingClientRect().width;
+                var viewWidth = document.querySelector('.viewport').getBoundingClientRect().width;
+                var sideWidth = document.querySelector('.sidewall').getBoundingClientRect().width;
                 window.onresize = widthRenewer;
+
                 function widthRenewer() {
                     viewportWidth = document.querySelector('.visualization-wrapper').getBoundingClientRect().width;
+                    viewWidth = document.querySelector('.viewport').getBoundingClientRect().width;
+                    sideWidth = document.querySelector('.sidewall').getBoundingClientRect().width;
+
                     maxVolumeWidth = volumeBar.getBoundingClientRect().width;
-                    var pxPerSec = viewportWidth / audio.duration;
-                    if (pxPerSec > 5) { // 5px is default pxPerSec (according to sreen size); I have the same parameter in the script (audio Init)
+                    pxPerSec = viewportWidth / audio.duration;
+                    if (pxPerSec > initialPPS) { // 25px is default pxPerSec (according to sreen size); I have the same parameter in the script (audio Init)
                         wMultiplier = (defaultMM * pxPerSec) / 100;
                     } else {
                         wMultiplier = 1;
@@ -172,6 +218,8 @@
                     restrictSelecting();
                     if (e.shiftKey) {
                         isScalingView = true;
+                        var shift = -parseFloat(viewport.style.marginLeft);
+                        proportion = ((shift + (viewWidth/2)) / viewportWidth);
                         return;
                     }
                     isMovingView = true;
@@ -179,8 +227,23 @@
                 })
 
                 document.getElementById('audio')
-                .addEventListener('timeupdate', function () {
+                .addEventListener('play', function () {
+                    center();
                     updateProgress();
+                })
+
+                document.getElementById('audio')
+                .addEventListener('pause', function () {
+                    updateProgress();
+                    document.body.style.setProperty('--progress',  (parseFloat(getComputedStyle(progress).width) / viewportWidth) * 100 + '%');
+                    viewport.style.marginLeft = getComputedStyle(viewport).marginLeft;
+                    progress.removeAttribute('smooth');
+                    viewport.removeAttribute('smooth');
+                })
+
+                document.getElementById('audio')
+                .addEventListener('ended', function () {
+                    togglePlaying();
                 })
 
                 document.getElementById('progress-wrapper')
@@ -244,52 +307,60 @@
                         scaleArea(e.movementX);
                     }
                     if (isChangingTime === true) {
+                        updateProgress();
                         setTimeByPageX(e.pageX);
                     }
                     if (isScalingView === true) {
-                        var viewport = document.querySelector('.visualization-wrapper');
-                            viewport.style.width = ((viewport.getBoundingClientRect().width + (e.movementX * wMultiplier))) + 'px';
-                        widthRenewer();
+                        scaleView(e.movementX);
                     }
                     if (isMovingView === true) {
-                        var viewport = document.querySelector('.visualization-wrapper');
-                            viewport.style.marginLeft = (parseFloat(viewport.style.marginLeft) + e.movementX) + 'px';
+                        moveView(e.movementX);
                     }
                     if (isChangingVolume === true) {
-                        changeVolume(e);
+                        changeVolume(e.pageX);
                     }
                 })
+
                 document.addEventListener('mouseup', function (e) {
                     if (isBuilding === true) {
                         buildEnd(e.pageX);
                         isBuilding = false;
+                        return;
                     }
                     if (isMoving === true && isMoved === true) {
                         moveEnd();
                         isMoving = false;
                         isMoved = false;
+                        return;
                     }
                     if (isMoving === true && isMoved === false) {
                         isMoving = false;
+                        return;
                     }
                     if (isScalingArea === true) {
                         scaleAreaEnd();
                         isScalingArea = false;
                         direction = null;
+                        return;
                     }
                     if (isChangingTime === true) {
+                        updateProgress();
                         isChangingTime = false;
+                        return;
                     }
                     if (isScalingView === true) {
                         isScalingView = false;
+                        return;
                     }
                     if (isMovingView === true) {
                         isMovingView = false;
+                        return;
                     }
                     if (isChangingVolume === true) {
-                        changeVolume(e);
+                        changeVolume(e.pageX);
                         isChangingVolume = false;
-                        }
+                        return;
+                    }
                     allowSelecting();
                 })
 
@@ -313,27 +384,275 @@
                     }
                     return false;
                 }
+
+                // touches implementation
+
+                // touchstart
+                var tDelayTimeout;
+                var lastTouchX;
+
+                document.getElementById('ruler')
+                .addEventListener('touchstart', function (e) {
+                    if (e.touches.length == 1) {
+                        if (e.cancelable) {
+                            e.preventDefault();
+                        }
+                        restrictSelecting();
+                        if (e.shiftKey) {
+                            isScalingView = true;
+                            var shift = -parseFloat(viewport.style.marginLeft);
+                            proportion = ((shift + (viewWidth/2)) / viewportWidth);
+                            return;
+                        }
+                        isMovingView = true;
+                        return;
+                    }
+                })
+                document.getElementById('progress-wrapper')
+                .addEventListener('touchstart', function (e) {
+                    if (e.cancelable) {
+                        e.preventDefault();
+                    }
+                    if (e.touches.length == 1) {
+                        var touch = e.touches.item(0);
+                        restrictSelecting();
+                        isChangingTime = true;
+                        clearTimeout(tDelayTimeout);
+                        lastTouchX = touch.pageX;
+                        tDelayTimeout = setTimeout(setTimeByPageX, 180); // to give time to put fingers for scaling
+                    }
+                })
+                document.querySelector('.areas-placeholder')
+                .addEventListener('touchstart', function (e) {
+                    if (e.cancelable) {
+                        e.preventDefault();
+                    }
+                    if (e.touches.length == 1 && !isMoving) {
+                        var touch = e.changedTouches.item(0);
+                        restrictSelecting();
+                        buildStart(touch.pageX);
+                        isBuilding = true;
+                    }
+                })
+                document.getElementById('areas')
+                .addEventListener('touchstart', function (e) {
+                    if (e.cancelable) {
+                        e.preventDefault();
+                    }
+                    if (e.touches.length == 1 && e.target.className == 'area') {
+                        restrictSelecting();
+                        isMoving = true;
+                    }
+                })
+                document.getElementById('areas')
+                .addEventListener('touchend', function (e) {
+                    if (e.cancelable) {
+                        e.preventDefault();
+                    }
+                    if (e.touches.length == 0 && e.target.className == 'area') {
+                        if (!currentNote || currentNote.visualNode != e.target) {
+                            var id = e.target.getAttribute('id');
+                            select(id);
+                        }
+                    }
+                })
+                document.addEventListener('touchstart', function (e) {
+                    if (e.touches.length == 2) {
+                        clearTimeout(tDelayTimeout);
+                        lastTouchX = null;
+                        console.log('canceled')
+                        if (isBuilding) {
+                            buildingArea.node.remove();
+                            buildingArea = null;
+                            isBuilding = false;
+                        }
+                        if (!currentNote) {
+                            isChangingTime = false
+                            isMoving = false;
+                            isMovingView = false;
+                            isChangingVolume = false;
+                            isScalingView = true;
+                        } else {
+                        if (currentNote.type == 'area') {
+                            restrictSelecting();
+                            if (isMoved) {
+                                move.x = 0;
+                                moveEnd();
+                                isMoved = false;
+                            }
+                            isChangingVolume = false;
+                            isChangingTime = false
+                            isMoving = false;
+                            isMovingView = false;
+                            isMoving = false;
+                            direction = 'right';
+                            isScalingArea = true;
+                            }
+                        }
+                    }
+                })
+                volumeBar.addEventListener('touchstart', (e) => {
+                    if (e.cancelable) {
+                        e.preventDefault();
+                    }
+                    if (e.touches.length == 1) {
+                        restrictSelecting();
+                        isChangingVolume = true;
+                        clearTimeout(tDelayTimeout);
+                        lastTouchX = e.touches[0].pageX;
+                        tDelayTimeout = setTimeout(changeVolume, 180); // to give time to put fingers for scaling
+                    }
+                })
+
+                // touchmove
+                var move = {x: 0, y: 0};
+                var prevDist = null;
+                document.addEventListener('touchmove', function (e) {
+                    if (isBuilding === true) {
+                        if (e.touches.length == 1) {
+                            var touch = e.touches.item(0);
+                            building(touch.pageX);
+                        }
+                    }
+                    if (isMoving === true) {
+                        //var id = e.target.getAttribute('id');
+                        //select(id);
+                        if (e.touches.length == 1) {
+                        var touch = e.touches.item(0);
+                        if (move.x && move.x != 0 && move.x != touch.clientX) {
+                            var movementX = touch.clientX - move.x;
+                        }
+                        move.x = touch.clientX;
+                        moving(movementX);
+                        isMoved = true;
+                        }
+                    }
+                    if (isScalingArea === true) {
+                        if (e.touches.length == 2) {
+                            var touches = [e.touches.item(0), e.touches.item(1)];
+                            if (prevDist) {
+                                var movementX = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY) - prevDist;
+                                scaleArea(movementX);
+                            }
+                            prevDist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY);
+                        }
+                    }
+                    if (isChangingTime === true) {
+                        if (e.touches.length == 1) {
+                            var touch = e.touches.item(0);
+                            setTimeByPageX(touch.pageX);
+                        }
+                    }
+                    if (isScalingView === true) {
+                        if (e.touches.length == 2) {
+                            var touches = [e.touches.item(0), e.touches.item(1)];
+                            if (prevDist) {
+                                var movementX = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY) - prevDist;
+                                scaleView(movementX);
+                            }
+                            prevDist = Math.hypot(e.touches[0].pageX - e.touches[1].pageX, e.touches[0].pageY - e.touches[1].pageY);
+                        }
+                    }
+                    if (isMovingView === true) {   
+                        if (e.touches.length == 1) {
+                            var touch = e.touches.item(0);
+                            if (move.x && move.x != 0 && move.x != touch.clientX) {
+                                var movementX = touch.clientX - move.x;
+                            }
+                            move.x = touch.clientX;
+                            moveView(movementX);
+                        }
+                    }
+                    if (isChangingVolume === true) {
+                        if (e.touches.length == 1) {
+                            var touch = e.touches.item(0);
+                            changeVolume(touch.pageX);
+                        }
+                    }
+                    
+                })
+
+                // touchend
+                document.addEventListener('touchend', function (e) {
+                    console.log(e.touches)
+                    console.log(e.changedTouches)
+                    if (isBuilding === true) {
+                        var touch = e.changedTouches.item(0);
+                        buildEnd(touch.pageX);
+                        isBuilding = false;
+                        return;
+                    }
+                    if (isMoving === true && isMoved === true) {
+                        move.x = 0;
+                        moveEnd();
+                        isMoving = false;
+                        isMoved = false;
+                        return;
+                    }
+                    if (isMoving === true && isMoved === false) {
+                        move.x = 0;
+                        isMoving = false;
+                        return;
+                    }
+                    if (isScalingArea === true && e.touches.length == 0) {
+                        prevDist = null;
+                        scaleAreaEnd();
+                        isScalingArea = false;
+                        direction = null;
+                        return;
+                    }
+                    if (isChangingTime === true) {
+                        updateProgress();
+                        isChangingTime = false;
+                        return;
+                    }
+                    if (isScalingView === true && e.touches.length == 0) {
+                        prevDist = null;
+                        isScalingView = false;
+                        return;
+                    }
+                    if (isMovingView === true) {
+                        move.x = 0;
+                        isMovingView = false;
+                        return;
+                    }
+                    if (isChangingVolume === true && e.touches.length == 0) {
+                        var touch = e.changedTouches.item(0);
+                        changeVolume(touch.pageX);
+                        isChangingVolume = false;
+                        return;
+                    }
+                    // half-end-gesture adaptation for 2 finger gestures to scale repeating pinch just with one finger
+                    if (isScalingView === true && e.touches.length == 1) {
+                        prevDist = null;
+                        return;
+                    }
+                    if (isScalingArea === true && e.touches.length == 1) {
+                        prevDist = null;
+                        return;
+                    }
+                    allowSelecting();
+                })
+
+                // hover imitation for touchsreens
+                var hovered;
+                document.addEventListener('touchmove', function (e) {
+                    var touch = e.touches.item(0);
+                    var target = document.elementFromPoint(touch.clientX, touch.clientY);
+                    if (target != hovered) {
+                        if (hovered) {
+                            hovered.removeAttribute('hovered');
+                            hovered = null;
+                        }
+                        if (target && target.className.includes('styled-btn')) {
+                            target.setAttribute('hovered', '');
+                            hovered = target;
+                        }
+                    }
+                })
             </script>
             </div>
         <div class="form-wrapper">
-            <div class="buttons">
-                <input type="button" id="write-btn" value="Make note">
-                <script>
-                    document.getElementById('write-btn')
-                    .addEventListener('click', function () {
-                        makeNote();
-                    });
-                </script>
-                <input type="button" id="erase-btn" value="Remove note">
-                <script>
-                    document.getElementById('erase-btn')
-                    .addEventListener('click', function () {
-                        if (currentNote) {
-                            currentNote.remove();
-                        }
-                    });
-                </script>
-            </div>
             <div class="input-wrapper">
                 <input class="text-input" type="text" id="title" placeholder="Title">
                 <textarea class="text-input" id="note" placeholder="Something to note..." oninput="heightControl(this)"></textarea>
@@ -359,6 +678,24 @@
                         }
                     }
                 </script>
+                <div class="buttons buttons-right">
+                    <input class="styled-btn" type="button" id="erase-btn" value="Remove note">
+                    <script>
+                        document.getElementById('erase-btn')
+                        .addEventListener('click', function () {
+                            if (currentNote) {
+                                currentNote.remove();
+                            }
+                        });
+                    </script>
+                    <input class="styled-btn" type="button" id="write-btn" value="Make note">
+                    <script>
+                        document.getElementById('write-btn')
+                        .addEventListener('click', function () {
+                            makeNote();
+                        });
+                    </script>
+                </div>
             </div>
         </div>
         <div class="notes-wrapper">
