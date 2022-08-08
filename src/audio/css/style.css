@@ -299,6 +299,10 @@ input[type=file]::-webkit-file-upload-button {
   transition: width 0.5s linear;
 }
 
+[notransition] {
+  transition: none !important;
+}
+
 .progress-bar {
   width: 100%;
   height: var(--player-progress-height);

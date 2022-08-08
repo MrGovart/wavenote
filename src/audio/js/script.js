@@ -3,9 +3,7 @@
 // TODO: remake scaling again. Scale to 100% or default                                                 — done! but I want more, I think
 // TODO: start-up window                                                                                - done!
 // TODO: new file button to recall start-up                                                             - done!
-// TODO: label for area node
 // TODO: correctview correction                                                                         — done! kinda
-// TODO: viewportWidth to visualizationWrapperWidth — now viewport and view should just replace each other
 // TODO: load your own audio btnXfeature                                                                — done!
 // TODO: remove ID and type from note constructor (at least type)
 // TODO: pretty look style:
@@ -15,18 +13,22 @@
 //                          ruler to svg to get rid of chunky scaling                                   – unnessasary
 //                          color-palette                                                               – kinda done
 // TODO: mobile view — make touch events listeners                                                      — done
-// TODO: update scaling function to read two-fingers gestures
 // TODO: ID generation                                                                                  — done!
-// TODO: area-list click and sort (add timecodes or smth)
-// TODO: make 'switch' instead of 'if' in Note class methods
-// TODO: total check up LOL
-// TODO: correct scaling mod
 // TODO: correct end of interaction for touch gestures
 //                                          - cancel function - done
-// TODO: add area-size limit on scaling - done!
-// TODO: deselect on tap anywhere on the viewport
+// TODO: add area-size limit on scaling                                                                 - done!
+// TODO: deselect on tap anywhere on the viewport                                                       - done!
 // TODO: is it possible to changeprogress on touchstart without triggering it on touchstart with 2 touches - done! timeouts are added
-// TODO: make forced changeprogress run without transition
+// TODO: make forced changeprogress run without transition                                              - done
+// TODO: update scaling function to read two-fingers gestures  - done?
+// TODO: viewportWidth to visualizationWrapperWidth — now viewport and view should just replace each other
+// TODO: label for area node
+// TODO: area-list click and sort (add timecodes or smth)
+// TODO: make 'switch' instead of 'if' in Note class methods
+// TODO: correct scaling mod                                                                            - done, but don't really know what to do with it
+// TODO: total check up LOL
+
+// TODO: try to setInterval on updateprogressLive to get rid of animation on mobile
 
  function save(filename, textInput) {
     var element = document.createElement('a');
@@ -485,21 +487,6 @@ function togglePlaying(btn) {
     audio[method]()
 }
 
-var updateTimer;
-function updateProgress() {
-    clearTimeout(updateTimer);
-    var style = document.body.style;
-    var percentage = (audio.currentTime / audio.duration)*100;
-    
-    style.setProperty('--progress', percentage + '%');
-
-    var time = secToHMS(audio.currentTime);
-    document.getElementById('time-current').innerHTML = time.hours + ':' + time.minutes + ':' + time.seconds;
-    correctView();
-    if (!audio.paused) {
-        updateProgressLive();
-    }
-}
 
 let focusOnCenter = false;
 
@@ -511,6 +498,7 @@ function toggleCenter() {
         document.getElementById('toggle-center').setAttribute('pushed', '');
         } else {
             document.getElementById('toggle-center').removeAttribute('pushed');
+            viewport.removeAttribute('smooth', '');
         }
 }
 
@@ -521,21 +509,56 @@ function center() {
     }
 }
 
+var updateTimer;
+function followProgress() {
+    setTimeout(updateProgressLive, 0); // it won't count removing of smooth if call it directly
+    updateTimer = setInterval(updateProgressLive, 500);
+}
+
+function unfollowProgress() {
+    clearInterval(updateTimer);
+}
+
+function updateProgress() {
+    unfollowProgress();
+    var style = document.body.style;
+    var percentage = (audio.currentTime / audio.duration)*100;
+    
+    if (progress.hasAttribute('smooth')) {
+        progress.removeAttribute('smooth')
+        console.log('smooth is removed')
+    }
+
+    style.setProperty('--progress', percentage + '%');
+    
+    var time = secToHMS(audio.currentTime);
+    document.getElementById('time-current').innerHTML = time.hours + ':' + time.minutes + ':' + time.seconds;
+    correctView();
+
+    if (!audio.paused) {
+        followProgress();
+        if (focusOnCenter) {
+            center();
+        }
+    }
+}
+
 function updateProgressLive() {
-    clearTimeout(updateTimer);
-    updateTimer = setTimeout(updateProgressLive, 500);
     var mod = 0.5 * audio.playbackRate;
     var style = document.body.style;
     var percentage = ((audio.currentTime + mod) / audio.duration)*100;
+
     if (focusOnCenter) {
         var shift = -((percentage/100) * viewportWidth) + (viewWidth/2);
-        console.log('smooth is applied')
-        viewport.setAttribute('smooth', '');
+        if (!viewport.hasAttribute('smooth')) {
+            viewport.setAttribute('smooth', '');
+        }
         viewport.style.marginLeft = shift + 'px';
     }
+        if (!progress.hasAttribute('smooth')) {
+            progress.setAttribute('smooth', '')
+        }
 
-    progress.setAttribute('smooth', '')
-    
     style.setProperty('--progress', percentage + '%');
 
     var time = secToHMS(audio.currentTime);
@@ -574,11 +597,13 @@ function secToHMS(secs) {
 
 function setTime(i) { //
     document.getElementById('audio').currentTime = i;
+    updateProgress();
 }
 
 function setTimeByPercent(percent) {
     var time = (audio.duration / 100) * percent;
     audio.currentTime = time;
+    console.log(time)
     updateProgress();
 }
 
