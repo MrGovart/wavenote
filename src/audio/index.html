@@ -150,6 +150,7 @@
                                     setVolume = 0;
                                     }
                                 }
+                                console.log(setVolume)
                                 style.setProperty('--volume', setVolume + '%');
                                 audio.volume = setVolume / 100;
                             }
@@ -416,7 +417,8 @@
                         isChangingTime = true;
                         clearTimeout(tDelayTimeout);
                         lastTouchX = touch.pageX;
-                        tDelayTimeout = setTimeout(setTimeByPageX, 180); // to give time to put fingers for scaling
+                        // tDelayTimeout = setTimeout(setTimeByPageX, 180); // to give time to put fingers for scaling
+                        setTimeByPageX();
                     }
                 })
                 document.querySelector('.areas-placeholder')
@@ -565,7 +567,9 @@
                     }
                     if (isChangingVolume === true) {
                         if (e.touches.length == 1) {
-                            var touch = e.touches.item(0);
+                            var touch = e.changedTouches.item(0);
+                            clearTimeout(tDelayTimeout);
+                            lastTouchX = null;
                             changeVolume(touch.pageX);
                         }
                     }

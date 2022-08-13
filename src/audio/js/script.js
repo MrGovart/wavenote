@@ -15,12 +15,12 @@
 // TODO: mobile view — make touch events listeners                                                      — done
 // TODO: ID generation                                                                                  — done!
 // TODO: correct end of interaction for touch gestures
-//                                          - cancel function - done
+//                                          - cancel function                                           - done
 // TODO: add area-size limit on scaling                                                                 - done!
 // TODO: deselect on tap anywhere on the viewport                                                       - done!
 // TODO: is it possible to changeprogress on touchstart without triggering it on touchstart with 2 touches - done! timeouts are added
 // TODO: make forced changeprogress run without transition                                              - done
-// TODO: update scaling function to read two-fingers gestures  - done?
+// TODO: update scaling function to read two-fingers gestures                                           - done?
 // TODO: viewportWidth to visualizationWrapperWidth — now viewport and view should just replace each other
 // TODO: label for area node
 // TODO: area-list click and sort (add timecodes or smth)
@@ -28,7 +28,7 @@
 // TODO: correct scaling mod                                                                            - done, but don't really know what to do with it
 // TODO: total check up LOL
 
-// TODO: try to setInterval on updateprogressLive to get rid of animation on mobile
+// known issues: touchstart changes progress in smooth mode instead of immediate change
 
  function save(filename, textInput) {
     var element = document.createElement('a');
@@ -77,11 +77,8 @@ class Note {
         if (this.type == 'area') {
             this.start = parseFloat(this.visualNode.style.marginLeft);
             this.end = this.start + parseFloat(this.visualNode.style.width);
-            if (!this.textualNode) {
-                this.createTextual();
-            }
+            this.createTextual();
         }
-        console.log('refreshed')
     }
 
     show() {
@@ -132,6 +129,7 @@ class Note {
         if (this.type == 'point') {
             if (this.textualNode) { // if it exists refresh it
                 this.textualNode.innerHTML = this.start + ': ' + this.title + '<br>' + this.text;
+                console.log('refreshed')
             } else {
                 var container = document.getElementById('note-list');
                 var div = document.createElement('div');
@@ -145,6 +143,7 @@ class Note {
         if (this.type == 'area') {
             if (this.textualNode) {  // if it exists refresh it
                 this.textualNode.innerHTML = this.title + '<br>' + this.text;
+                console.log('refreshed')
             } else {
                 var container = document.getElementById('area-list');
                 var div = document.createElement('div');
@@ -530,6 +529,7 @@ function updateProgress() {
     }
 
     style.setProperty('--progress', percentage + '%');
+    console.log('property is set')
     
     var time = secToHMS(audio.currentTime);
     document.getElementById('time-current').innerHTML = time.hours + ':' + time.minutes + ':' + time.seconds;
@@ -556,7 +556,8 @@ function updateProgressLive() {
         viewport.style.marginLeft = shift + 'px';
     }
         if (!progress.hasAttribute('smooth')) {
-            progress.setAttribute('smooth', '')
+            progress.setAttribute('smooth', '');
+            console.log('smooth is applied')
         }
 
     style.setProperty('--progress', percentage + '%');
